@@ -1,0 +1,128 @@
+version: "3.1"
+services:
+    consul1:
+        image: consul:latest
+        container_name: "node1"
+        hostname: "node1"
+        restart: always
+        networks:
+          - consul
+        volumes:
+          - $PWD/consul-data/:/consul/data
+        ports:
+          - 8300:8300
+          - 8301:8301
+          - 8302:8302
+          - 8400:8400
+          - 8500:8500
+          - 8600:8600
+        command:
+          - agent
+          - -server
+          - -node=node1
+          - -client=0.0.0.0
+          - -bootstrap-expect=3
+          # - -bind={{ GetInterfaceIP "eth0" }}
+          - -bind=127.0.0.1
+          - -ui
+    consul2:
+        image: consul:latest
+        container_name: "node2"
+        hostname: "node2"
+        restart: always
+        networks:
+          - consul
+        volumes:
+          - $PWD/consul-data/:/consul/data
+          - $PWD/config/consul:/consul/config
+        ports:
+          - 8303:8300
+          - 8304:8301
+          - 8305:8302
+          - 8401:8400
+          - 8501:8500
+          - 8601:8600
+        command:
+          - agent
+          - -server
+          - -node=node2
+          - -join=node1
+          # - -rejoin
+          - -retry-join=node1
+        depends_on:
+          - consul1
+        links:
+          - consul1
+    consul3:
+          image: consul:latest
+          container_name: "node3"
+          hostname: "node3"
+          restart: always
+          networks:
+            - consul
+          volumes:
+            - $PWD/consul-data/:/consul/data
+            - $PWD/config/consul:/consul/config
+          ports:
+            - 8306:8300
+            - 8307:8301
+            - 8308:8302
+            - 8402:8400
+            - 8502:8500
+            - 8602:8600
+          command:
+            - agent
+            - -server
+            - -node=node3
+            - -join=node1
+            # - -rejoin
+            - -retry-join=node1
+          depends_on:
+            - consul1
+          links:
+            - consul1
+
+    vault:
+        depends_on:
+          - consul1
+          # - mysql
+        image: vault:latest
+        container_name: "vault"
+        hostname: "vault"
+        restart: always
+        cap_add:
+            - IPC_LOCK
+        ports:
+          - 8200:8200
+        environment:
+          VAULT_LOCAL_CONFIG: '{"backend": {"consul": {"address": "consul1:8500", "path": "vault"}}, "listener": {"tcp": {"address": "0.0.0.0:8200", "tls_disable": "1"}}, "default_lease_ttl": "24h", "max_lease_ttl": "720h"}'
+          VAULT_ADDR: "http://0.0.0.0:8200"
+        volumes:
+            - $PWD/vault/config:/vault/config
+            - $PWD/vault/logs:/vault/logs
+            - $PWD/vault/file:/vault/file
+        command:
+            - server
+        networks:
+          - consul
+
+    # mysql:
+    #     image: mysql:5.7.19
+    #     networks:
+    #       - consul
+    #     #image: healthcheck/mysql
+    #     environment:
+    #       #MYSQL_ONETIME_PASSWORD: mysql
+    #       MYSQL_ROOT_PASSWORD: mysql
+    #       MYSQL_DATABASE: vault
+    #       MYSQL_USER: vault
+    #       MYSQL_PASSWORD: vault
+    #     ports: ["3306:3306"]
+    #     volumes: ["mysql-data:/var/lib/mysql"]
+    #     #networks: [backing-services]
+networks:
+  consul:
+    driver: bridge
+
+# volumes:
+#   mysql-data: {}

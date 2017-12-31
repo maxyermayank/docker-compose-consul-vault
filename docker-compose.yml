@@ -1,4 +1,4 @@
-version: "3.1"
+version: "3.5"
 services:
     consul1:
         image: consul:latest
@@ -25,6 +25,24 @@ services:
           # - -bind={{ GetInterfaceIP "eth0" }}
           - -bind=127.0.0.1
           - -ui
+        ulimits:
+          nproc: 65535
+        cap_add:
+          - ALL
+        privileged: true
+        deploy:
+          mode: global
+          restart_policy:
+            condition: on-failure
+            delay: 5s
+            max_attempts: 3
+            window: 120s
+        healthcheck:
+          test: ["CMD", "curl", "-f", "http://localhost:8500"]
+          #test: echo "hello world"
+          interval: 10s
+          timeout: 10s
+          retries: 5
     consul2:
         image: consul:latest
         container_name: "node2"
@@ -53,6 +71,24 @@ services:
           - consul1
         links:
           - consul1
+        ulimits:
+          nproc: 65535
+        cap_add:
+          - ALL
+        privileged: true
+        deploy:
+          mode: global
+          restart_policy:
+            condition: on-failure
+            delay: 5s
+            max_attempts: 3
+            window: 120s
+        healthcheck:
+          test: ["CMD", "curl", "-f", "http://localhost:8501"]
+          #test: echo "hello world"
+          interval: 10s
+          timeout: 10s
+          retries: 5
     consul3:
           image: consul:latest
           container_name: "node3"
@@ -81,6 +117,24 @@ services:
             - consul1
           links:
             - consul1
+          ulimits:
+            nproc: 65535
+          cap_add:
+            - ALL
+          privileged: true
+          deploy:
+            mode: global
+            restart_policy:
+              condition: on-failure
+              delay: 5s
+              max_attempts: 3
+              window: 120s
+          healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:8502"]
+            #test: echo "hello world"
+            interval: 10s
+            timeout: 10s
+            retries: 5
 
     vault:
         depends_on:
@@ -105,6 +159,24 @@ services:
             - server
         networks:
           - consul
+        ulimits:
+          nproc: 65535
+        cap_add:
+          - ALL
+        privileged: true
+        deploy:
+          mode: global
+          restart_policy:
+            condition: on-failure
+            delay: 5s
+            max_attempts: 3
+            window: 120s
+        healthcheck:
+          test: ["CMD", "curl", "-f", "http://localhost:8200"]
+          #test: echo "hello world"
+          interval: 10s
+          timeout: 10s
+          retries: 5
 
     # mysql:
     #     image: mysql:5.7.19
